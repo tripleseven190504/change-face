@@ -54,5 +54,5 @@ pip install onnxruntime-gpu==1.15.1
 ```
 ```batch
 cd %USERPROFILE%\Desktop\change-face\
-python run.py -s %USERPROFILE%\Desktop\change-face\face.jpg -t %USERPROFILE%\Desktop\change-face\video.mp4 -o %USERPROFILE%\Desktop\change-face\new_video.mp4 --frame-processor face_swapper
+python run.py -s face.jpg -t video.mp4 -o new_video.mp4 --frame-processor face_swapper
 ```
