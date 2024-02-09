@@ -36,9 +36,10 @@ Download [Cuda](https://developer.download.nvidia.com/compute/cuda/11.8.0/networ
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 ```
 ```batch
-choco install python --version=3.10.0
+choco install python --version=3.10.11
 choco install git
-choco install vc-2015-redist
+choco install ffmpeg
+choco install vcredist2015
 choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
 python -m ensurepip
 ```
@@ -46,11 +47,6 @@ python -m ensurepip
 ```batch
 @echo off
 cd %USERPROFILE%\Desktop
-winget install -e --id Git.Git
-winget install -e --id Gyan.FFmpeg
-winget install -e --id Microsoft.VCRedist.2015+.x64
-winget install -e --id Microsoft.VisualStudio.2022.BuildTools --override "--wait --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
-pip install --upgrade pip
 git clone https://github.com/tripleseven190504/change-face.git
 pip install fastapi kaleido python-multipart uvicorn
 pip install --force-reinstall lida gcsfs google-colab huggingface-hub imageio tensorflow tensorflow-probability torchdata torchtext yfinance
