@@ -31,6 +31,17 @@ python run.py -s ~/face.jpeg -t ~/video.mp4 -o ~/new_video.mp4 --frame-processor
 ### Windows
 
 Download [Cuda](https://developer.download.nvidia.com/compute/cuda/11.8.0/network_installers/cuda_11.8.0_windows_network.exe)
+#### Setup
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+```
+```batch
+choco install python --version=3.10.0
+choco install git
+choco install vc-2015-redist
+choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
+python -m ensurepip
+```
 
 ```batch
 @echo off
