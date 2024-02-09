@@ -36,6 +36,7 @@ Download [Cuda](https://developer.download.nvidia.com/compute/cuda/11.8.0/networ
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 ```
 ```batch
+choco install wget
 choco install python --version=3.10.11
 choco install git
 choco install ffmpeg
