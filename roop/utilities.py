@@ -5,72 +5,64 @@ import platform
 import shutil
 import ssl
 import subprocess
+import sys
+import tempfile
+import traceback
 import urllib
+import zipfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List
+
+import cv2
+import gradio
+import torch
+from scipy.spatial import distance
 from tqdm import tqdm
 
 import roop.globals
+import roop.template_parser as template_parser
 
+TEMP_FILE = 'temp.mp4'
 TEMP_DIRECTORY = 'temp'
-TEMP_VIDEO_FILE = 'temp.mp4'
 
-# monkey patch ssl for mac
 if platform.system().lower() == 'darwin':
     ssl._create_default_https_context = ssl._create_unverified_context
 
 
-def run_ffmpeg(args: List[str]) -> bool:
-    commands = ['ffmpeg', '-hide_banner', '-loglevel', roop.globals.log_level]
-    commands.extend(args)
-    try:
-        subprocess.check_output(commands, stderr=subprocess.STDOUT)
-        return True
-    except Exception:
-        pass
-    return False
+
+def detect_fps(target_path : str) -> float:
+    fps = 24.0
+    cap = cv2.VideoCapture(target_path)
+    if cap.isOpened():
+        fps = cap.get(cv2.CAP_PROP_FPS)
+    cap.release()
+    return fps
+
+def convert_to_gradio(image):
+    if image is None:
+        return None
+    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
-def detect_fps(target_path: str) -> float:
-    command = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=r_frame_rate', '-of', 'default=noprint_wrappers=1:nokey=1', target_path]
-    output = subprocess.check_output(command).decode().strip().split('/')
-    try:
-        numerator, denominator = map(int, output)
-        return numerator / denominator
-    except Exception:
-        pass
-    return 30
+def sort_filenames_ignore_path(filenames):
+  filename_path_tuples = [(os.path.split(filename)[1], filename) for filename in filenames]
+  sorted_filename_path_tuples = sorted(filename_path_tuples, key=lambda x: x[0])
+  return [filename_path_tuple[1] for filename_path_tuple in sorted_filename_path_tuples]
 
 
-def extract_frames(target_path: str, fps: float = 30) -> bool:
-    temp_directory_path = get_temp_directory_path(target_path)
-    temp_frame_quality = roop.globals.temp_frame_quality * 31 // 100
-    return run_ffmpeg(['-hwaccel', 'auto', '-i', target_path, '-q:v', str(temp_frame_quality), '-pix_fmt', 'rgb24', '-vf', 'fps=' + str(fps), os.path.join(temp_directory_path, '%04d.' + roop.globals.temp_frame_format)])
-
-
-def create_video(target_path: str, fps: float = 30) -> bool:
-    temp_output_path = get_temp_output_path(target_path)
-    temp_directory_path = get_temp_directory_path(target_path)
-    output_video_quality = (roop.globals.output_video_quality + 1) * 51 // 100
-    commands = ['-hwaccel', 'auto', '-r', str(fps), '-i', os.path.join(temp_directory_path, '%04d.' + roop.globals.temp_frame_format), '-c:v', roop.globals.output_video_encoder]
-    if roop.globals.output_video_encoder in ['libx264', 'libx265', 'libvpx']:
-        commands.extend(['-crf', str(output_video_quality)])
-    if roop.globals.output_video_encoder in ['h264_nvenc', 'hevc_nvenc']:
-        commands.extend(['-cq', str(output_video_quality)])
-    commands.extend(['-pix_fmt', 'yuv420p', '-vf', 'colorspace=bt709:iall=bt601-6-625:fast=1', '-y', temp_output_path])
-    return run_ffmpeg(commands)
-
-
-def restore_audio(target_path: str, output_path: str) -> None:
-    temp_output_path = get_temp_output_path(target_path)
-    done = run_ffmpeg(['-i', temp_output_path, '-i', target_path, '-c:v', 'copy', '-map', '0:v:0', '-map', '1:a:0', '-y', output_path])
-    if not done:
-        move_temp(target_path, output_path)
+def sort_rename_frames(path: str):
+    filenames = os.listdir(path)
+    filenames.sort()
+    for i in range(len(filenames)):
+        of = os.path.join(path, filenames[i])
+        newidx = i+1
+        new_filename = os.path.join(path, f"{newidx:06d}." + roop.globals.CFG.output_image_format)
+        os.rename(of, new_filename)
 
 
 def get_temp_frame_paths(target_path: str) -> List[str]:
     temp_directory_path = get_temp_directory_path(target_path)
-    return glob.glob((os.path.join(glob.escape(temp_directory_path), '*.' + roop.globals.temp_frame_format)))
+    return glob.glob((os.path.join(glob.escape(temp_directory_path), f'*.{roop.globals.CFG.output_image_format}')))
 
 
 def get_temp_directory_path(target_path: str) -> str:
@@ -81,16 +73,36 @@ def get_temp_directory_path(target_path: str) -> str:
 
 def get_temp_output_path(target_path: str) -> str:
     temp_directory_path = get_temp_directory_path(target_path)
-    return os.path.join(temp_directory_path, TEMP_VIDEO_FILE)
+    return os.path.join(temp_directory_path, TEMP_FILE)
 
 
-def normalize_output_path(source_path: str, target_path: str, output_path: str) -> Optional[str]:
-    if source_path and target_path and output_path:
+def normalize_output_path(source_path: str, target_path: str, output_path: str) -> Any:
+    if source_path and target_path:
         source_name, _ = os.path.splitext(os.path.basename(source_path))
         target_name, target_extension = os.path.splitext(os.path.basename(target_path))
         if os.path.isdir(output_path):
             return os.path.join(output_path, source_name + '-' + target_name + target_extension)
     return output_path
+
+
+def get_destfilename_from_path(srcfilepath: str, destfilepath: str, extension: str) -> str:
+    fn, ext = os.path.splitext(os.path.basename(srcfilepath))
+    if '.' in extension:
+        return os.path.join(destfilepath, f'{fn}{extension}')
+    return os.path.join(destfilepath, f'{fn}{extension}{ext}')
+
+def replace_template(file_path: str, index: int = 0):
+    fn, ext = os.path.splitext(os.path.basename(file_path))
+    fn = fn.replace('__temp', '')
+
+    template = roop.globals.CFG.output_template
+    replaced_filename = template_parser.parse(template, {
+        'index': str(index),
+        'file': fn
+    })
+
+    return os.path.join(roop.globals.output_path, f'{replaced_filename}{ext}')
+
 
 
 def create_temp(target_path: str) -> None:
@@ -114,9 +126,18 @@ def clean_temp(target_path: str) -> None:
     if os.path.exists(parent_directory_path) and not os.listdir(parent_directory_path):
         os.rmdir(parent_directory_path)
 
+def delete_temp_frames(filename: str) -> None:
+    dir = os.path.dirname(os.path.dirname(filename))
+    shutil.rmtree(dir)
+
+
+
 
 def has_image_extension(image_path: str) -> bool:
     return image_path.lower().endswith(('png', 'jpg', 'jpeg', 'webp'))
+
+def has_extension(filepath: str, extensions: List[str]) -> bool:
+    return filepath.lower().endswith(tuple(extensions))
 
 
 def is_image(image_path: str) -> bool:
@@ -139,11 +160,127 @@ def conditional_download(download_directory_path: str, urls: List[str]) -> None:
     for url in urls:
         download_file_path = os.path.join(download_directory_path, os.path.basename(url))
         if not os.path.exists(download_file_path):
-            request = urllib.request.urlopen(url)  # type: ignore[attr-defined]
+            request = urllib.request.urlopen(url)
             total = int(request.headers.get('Content-Length', 0))
-            with tqdm(total=total, desc='Downloading', unit='B', unit_scale=True, unit_divisor=1024) as progress:
-                urllib.request.urlretrieve(url, download_file_path, reporthook=lambda count, block_size, total_size: progress.update(block_size))  # type: ignore[attr-defined]
+            with tqdm(total=total, desc=f'Downloading {url}', unit='B', unit_scale=True, unit_divisor=1024) as progress:
+                urllib.request.urlretrieve(url, download_file_path, reporthook=lambda count, block_size, total_size: progress.update(block_size))
+
+
+def get_local_files_from_folder(folder:str):
+    if not os.path.exists(folder) or not os.path.isdir(folder):
+        return None
+    files = [os.path.join(folder, f) for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+    return files
 
 
 def resolve_relative_path(path: str) -> str:
     return os.path.abspath(os.path.join(os.path.dirname(__file__), path))
+
+def get_device() -> str:
+    if len(roop.globals.execution_providers) < 1:
+        roop.globals.execution_providers = ['CPUExecutionProvider']
+
+    prov = roop.globals.execution_providers[0]
+    if 'CoreMLExecutionProvider' in prov:
+        return 'mps'
+    if 'CUDAExecutionProvider' in prov or 'ROCMExecutionProvider' in prov:
+	    return 'cuda'
+    if 'OpenVINOExecutionProvider' in prov:
+        return 'mkl'
+    return 'cpu'
+
+
+def str_to_class(module_name, class_name):
+    from importlib import import_module
+    try:
+        module_ = import_module(module_name)
+        try:
+            class_ = getattr(module_, class_name)()
+        except AttributeError:
+            print(f'Class {class_name} does not exist')
+    except ImportError:
+        print(f'Module {module_name} does not exist')
+    return class_ or None
+
+
+def get_platform():
+    if sys.platform == 'linux':
+        try:
+            proc_version = open('/proc/version').read()
+            if 'Microsoft' in proc_version:
+                return 'wsl'
+        except:
+            pass
+    return sys.platform
+
+def open_with_default_app(filename):
+    if filename == None:
+        return
+    platform = get_platform()
+    if platform == 'darwin':
+        subprocess.call(('open', filename))
+    elif platform in ['win64', 'win32']:
+        os.startfile(filename.replace('/','\\'))
+    elif platform == 'wsl':
+        subprocess.call('cmd.exe /C start'.split() + [filename])
+    else:
+        subprocess.call('xdg-open', filename)
+
+def prepare_for_batch(target_files):
+    print("Preparing temp files")
+    tempfolder = os.path.join(tempfile.gettempdir(), "rooptmp")
+    if os.path.exists(tempfolder):
+        shutil.rmtree(tempfolder)
+    Path(tempfolder).mkdir(parents=True, exist_ok=True)
+    for f in target_files:
+        newname = os.path.basename(f.name)
+        shutil.move(f.name, os.path.join(tempfolder, newname))
+    return tempfolder
+
+
+def zip(files, zipname):
+    with zipfile.ZipFile(zipname, "w") as zip_file:
+        for f in files:
+            zip_file.write(f, os.path.basename(f))
+
+def unzip(zipfilename:str, target_path:str):
+    with zipfile.ZipFile(zipfilename, "r") as zip_file:
+        zip_file.extractall(target_path)
+
+
+def mkdir_with_umask(directory):
+    oldmask = os.umask(0)
+    os.makedirs(directory, mode=0o775, exist_ok=True)
+    os.umask(oldmask)
+
+def open_folder(path:str):
+    platform = get_platform()
+    try:
+        if platform == 'darwin':
+            subprocess.call(('open', path))
+        elif platform in ['win64', 'win32']:
+            open_with_default_app(path)
+        elif platform == 'wsl':
+            subprocess.call('cmd.exe /C start'.split() + [path])
+        else:
+            subprocess.Popen(['xdg-open', path])
+    except Exception as e:
+        traceback.print_exc()
+        pass
+
+
+
+def create_version_html():
+    python_version = ".".join([str(x) for x in sys.version_info[0:3]])
+    versions_html = f"""
+python: <span title="{sys.version}">{python_version}</span>
+•
+torch: {getattr(torch, '__long_version__',torch.__version__)}
+•
+gradio: {gradio.__version__}
+"""
+    return versions_html
+
+
+def compute_cosine_distance(emb1, emb2):
+    return distance.cosine(emb1, emb2)

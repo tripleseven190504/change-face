@@ -1,66 +1,30 @@
-# Hướng dẫn sử dụng
+# Preview
 
-## Chạy trên Google Colab
+![preview image](preview.png)
 
-<a href="https://colab.research.google.com/github/tripleseven190504/change-face/blob/main/DeepFake.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+## Hướng dẫn cài đặt
 
-## Chạy trên local
+### Chuẩn bị
 
-### Linux
+1. Mở PowerShell với quyền quản trị bằng cách nhấn phải vào biểu tượng PowerShell và chọn "Run as Administrator".
 
-```bash
-cd ~
-pip install --upgrade pip
-git clone https://github.com/tripleseven190504/change-face.git
-pip install fastapi kaleido python-multipart uvicorn
-pip install --force-reinstall lida gcsfs google-colab huggingface-hub imageio tensorflow tensorflow-probability torchdata torchtext yfinance
-pip install -r ~/change-face/requirements.txt
-wget https://huggingface.co/ezioruan/inswapper_128.onnx/resolve/main/inswapper_128.onnx -O inswapper_128.onnx
-mkdir ~/change-face/models
-mv inswapper_128.onnx ~/change-face/models
-pip uninstall onnxruntime onnxruntime-gpu -y
-pip install torch torchvision torchaudio --force-reinstall --index-url https://download.pytorch.org/whl/cu118
-pip install onnxruntime-gpu==1.15.1
-```
+2. Chạy lệnh sau để cài đặt Chocolatey `nếu chưa có`:
 
-```bash
-cd ~/change-face
-python run.py -s ~/face.jpeg -t ~/video.mp4 -o ~/new_video.mp4 --frame-processor face_swapper
-```
+    ```powershell
+    Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+    ```
 
-### Windows
+3. Sau khi cài đặt Chocolatey thành công, chạy lệnh sau để cài đặt [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) và [Python](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe) kèm theo [Git](https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe), [FFMPEG](https://github.com/BtbN/FFmpeg-Builds/releases):
 
-Download [Cuda](https://developer.download.nvidia.com/compute/cuda/11.8.0/network_installers/cuda_11.8.0_windows_network.exe)
-#### Setup
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-```
-```batch
-choco install wget
-choco install python --version=3.10.11
-choco install git
-choco install ffmpeg
-choco install vcredist2015
-choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
-python -m ensurepip
-```
+    ```powershell
+    choco install visualcpp-build-tools
+    choco install python --version 3.10.11
+    choco install ffmpeg
+    choco install git
+    ```
 
-```batch
-@echo off
-cd %USERPROFILE%\Desktop
-git clone https://github.com/tripleseven190504/change-face.git
-pip install fastapi kaleido python-multipart uvicorn
-pip install --force-reinstall lida gcsfs google-colab huggingface-hub imageio tensorflow tensorflow-probability torchdata torchtext yfinance
-pip install -r %USERPROFILE%\Desktop\change-face\requirements.txt
-wget https://huggingface.co/ezioruan/inswapper_128.onnx/resolve/main/inswapper_128.onnx -O inswapper_128.onnx
-mkdir %USERPROFILE%\Desktop\change-face\models
-move inswapper_128.onnx %USERPROFILE%\Desktop\change-face\models
-pip uninstall onnxruntime onnxruntime-gpu -y
-pip install torch torchvision torchaudio --force-reinstall --index-url https://download.pytorch.org/whl/cu118
-pip install onnxruntime-gpu==1.15.1
+### Chạy ứng dụng
 
-```
-```batch
-cd %USERPROFILE%\Desktop\change-face\
-python run.py -s face.jpg -t video.mp4 -o new_video.mp4 --frame-processor face_swapper
-```
+Để chạy ứng dụng, hãy mở tệp `start.bat`
+
+**Chú ý:** Lần đầu tiên cài đặt, bạn sẽ cần phải tải và cài đặt một số thư viện và các file phụ trợ có dung lượng khoảng `2. GB`.
