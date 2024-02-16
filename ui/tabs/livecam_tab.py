@@ -10,7 +10,7 @@ cam_swapping = False
 camthread = None
 
 def livecam_tab():
-    with gr.Tab("DeepFake RealTime Camera"):
+    with gr.Tab("📷♡DeepFake RealTime Camera"):
         with gr.Row():
             with gr.Column(scale=2):
                 cam_toggle = gr.Checkbox(label='Activate', value=ui.globals.ui_live_cam_active)

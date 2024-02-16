@@ -14,7 +14,7 @@ images = []
 
 
 def facemgr_tab():
-    with gr.Tab("👨‍👩‍👧‍👦 Fa Management"):
+    with gr.Tab("👨‍👩‍👧‍👦 Face Management"):
         with gr.Row():
             gr.Markdown("""
                         # Create blending facesets

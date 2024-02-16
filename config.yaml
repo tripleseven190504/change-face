@@ -7,9 +7,10 @@ output_image_format: png
 output_template: '{file}_{time}'
 output_video_codec: libx264
 output_video_format: mp4
-provider: cuda
+provider: cpu
 selected_theme: Default
 server_name: ''
 server_port: 0
-server_share: true
+server_share: false
+use_os_temp_folder: false
 video_quality: 14
