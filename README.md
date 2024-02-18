@@ -18,7 +18,7 @@
     Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
     ```
 
-3. Sau khi cài đặt Chocolatey thành công, chạy lệnh sau để cài đặt [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) và [Python](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe) kèm theo [Cuda]([https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe), [FFMPEG](https://github.com/BtbN/FFmpeg-Builds/releases](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64)):
+3. Sau khi cài đặt Chocolatey thành công, chạy lệnh sau để cài đặt [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) và [Python](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe) kèm theo [Cuda](https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe), [FFMPEG](https://github.com/BtbN/FFmpeg-Builds/releases](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64)):
 
     ```powershell
     choco install visualcpp-build-tools -y
