@@ -27,7 +27,11 @@
     ```powershell
     scoop install ffmpeg
     ```
-4. Cài đặt [Visual C++ Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe) và [Python](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe) kèm theo [Cuda](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64), [FFMPEG](https://github.com/BtbN/FFmpeg-Builds/releases](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64)):
+4. Cài đặt [Visual C++ Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe) và [Python](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe) kèm theo [Cuda](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64), [FFMPEG](https://github.com/BtbN/FFmpeg-Builds/releases](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64))
+5. Cài InsightFace:
+   ```powershell
+   pip install insightface
+   ```
 ### Chạy ứng dụng
 
 Để chạy ứng dụng, hãy mở tệp `start.bat`
